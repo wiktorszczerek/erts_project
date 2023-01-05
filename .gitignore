@@ -7,6 +7,6 @@
 !TEST.BMP
 !test
 
-!*/test_simple/test_simple.cpp
-!*/test_simple/test_simple.h
-!*/test_simple/test_simple_tb.cpp
+!test_simple/test_simple.cpp
+!test_simple/test_simple.h
+!test_simple/test_simple_tb.cpp
