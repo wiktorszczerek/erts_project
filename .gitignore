@@ -1,11 +1,6 @@
 *
 
 !.gitignore
-!block_design.png
-!lenka.bmp
-!readme_pls.txt
-!TEST.BMP
-!test
 
 !test_simple
 test_simple/*
@@ -15,3 +10,5 @@ test_simple/*
 
 !sdk
 !sdk/*
+
+!img/*

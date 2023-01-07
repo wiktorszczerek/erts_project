@@ -4,16 +4,10 @@
 #include "stdio.h"
 #include "xsdps.h"
 #include "ff.h"
+#include "common.h"
 
 #define IMG_WIDTH	128
 #define IMG_HEIGHT	128
-
-struct pixel {
-    uint8_t blue;
-    uint8_t green;
-    uint8_t red;
-    //uint8_t alpha;
-} __attribute__((__packed__));
 
 struct bmp_header{
     uint16_t type;              // "BM" (0x42, 0x4D)

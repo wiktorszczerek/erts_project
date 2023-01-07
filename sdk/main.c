@@ -4,6 +4,7 @@
 #include "dma.h"
 #include "xil_cache.h"
 #include "xscutimer.h"
+#include "sw_canny.h"
 
 #define ONE_SECOND 325000000
 
@@ -29,6 +30,7 @@ int main()
 
 	// BMP
 	struct pixel IMG[IMG_WIDTH * IMG_HEIGHT];
+	uint8_t sw_out[128][128];
 	struct bmp_header bmp_head;
 
 	// GPIO
@@ -51,10 +53,67 @@ int main()
 	xil_printf("DEBUG || IMG TEST | BGR: %u %u %u\r\n", IMG[1].blue, IMG[1].green, IMG[1].red);
 	xil_printf("DEBUG || IMG TEST | BGR: %u %u %u\r\n", IMG[32].blue, IMG[32].green, IMG[32].red);
 
+	// SW test
+	xil_printf("DEBUG || Processing image with sw approach...\r\n");
+
+	// sw file
+	xil_printf("DEBUG || Opening BMP for saving... \r\n");
+	FILINFO fno;
+	if(!f_stat("sw_test.bmp", &fno))
+	{
+		xil_printf("DEBUG || Deleting existing BMP file...\r\n");
+		f_unlink("sw_test.bmp");
+	}
+	if(sd_open("sw_test.bmp", FA_CREATE_NEW | FA_WRITE))
+	{
+		xil_printf("ERROR || Can't open BMP file\r\n");
+	}
+	else
+		xil_printf("DEBUG || BMP opened.\r\n");
+
+	uint8_t burn = 0xFF;
+	sd_write_bmp_header(&bmp_head);
+
+	XScuTimer_LoadTimer(&Timer, ONE_SECOND);
+	timer_start = XScuTimer_GetCounterValue(&Timer);
+	XScuTimer_Start(&Timer);
+
+	sw_process_image(IMG, sw_out);
+
+
+
+	for(uint8_t i=0; i<128; ++i)
+	{
+		for(uint8_t j=0; j<128; ++j)
+		{
+			sd_write((void*)(&sw_out[i][j]), 1, 1);
+			sd_write((void*)(&sw_out[i][j]), 1, 1);
+			sd_write((void*)(&sw_out[i][j]), 1, 1);
+			sd_write((void*)(&burn), 1, 1);
+		}
+	}
+
+	timer_stop = XScuTimer_GetCounterValue(&Timer);
+	XScuTimer_Stop(&Timer);
+	double diff = ((double)(timer_start - timer_stop))/ONE_SECOND;
+	uint32_t whole, thousandths;
+	whole = diff;
+	thousandths = (diff - whole) * 100000;
+	xil_printf("DEBUG || TIMER: Execution time for SW is approx: %u.%3u s\r\n", whole, thousandths);
+
+	sd_close();
+	xil_printf("SW bmp saved\r\n");
+
+
 
 	// SD - file for new IMG
 	xil_printf("DEBUG || Opening BMP for saving... \r\n");
-	if(sd_open("test.bmp", FA_CREATE_NEW | FA_WRITE))
+	if(!f_stat("hw_test.bmp", &fno))
+	{
+		xil_printf("DEBUG || Deleting existing BMP file...\r\n");
+		f_unlink("hw_test.bmp");
+	}
+	if(sd_open("hw_test.bmp", FA_CREATE_NEW | FA_WRITE))
 	{
 		xil_printf("ERROR || Can't open BMP file\r\n");
 	}
@@ -96,27 +155,26 @@ int main()
 		status = dma_send_simple(TxBufferPtr, 128);
 	}
 
+	XScuTimer_LoadTimer(&Timer, ONE_SECOND);
 	timer_start = XScuTimer_GetCounterValue(&Timer);
 	XScuTimer_Start(&Timer);
 
-//	xil_printf("DEBUG || DMA sent!\r\n");
-//	xil_printf("DEBUG || DMA receiving...\r\n");
-
-
 	for(uint32_t j=0; j<128*4; ++j)
 	{
-//		xil_printf("DEBUG || DMA receiving part %d\r\n", j);
 		status = dma_recv_simple(RxBufferPtr, 128);
 		for(uint8_t i=3; i<128; i=i+4)
 		{
 			RxBufferPtr[i] = 0xFF;
 		}
-//		xil_printf("DEBUG || DMA received! Saving packet to BMP\r\n");
 		sd_write_bmp_packet(RxBufferPtr, 128);
 	}
 	XScuTimer_Stop(&Timer);
 	timer_stop = XScuTimer_GetCounterValue(&Timer);
-	xil_printf("DEBUG || TIMER: Execution time is approx: %lu", timer_stop - timer_start);
+	diff = ((double)(timer_start - timer_stop))/ONE_SECOND;
+	whole = diff;
+	thousandths = (diff - whole) * 100000;
+
+	xil_printf("DEBUG || TIMER: Execution time for HW is approx: %u.%3u s\r\n", whole, thousandths);
 	xil_printf("DEBUG || DMA received!\r\n");
 
 
