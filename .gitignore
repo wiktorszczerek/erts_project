@@ -11,4 +11,5 @@ test_simple/*
 !sdk
 !sdk/*
 
+!img
 !img/*
